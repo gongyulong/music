@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>悦听播放器</title>
+    <style>
+        body,
+        ul,
+        dl,
+        dd {
+            margin: 0px;
+            padding: 0px;
+        }
+
+        .wrap {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: url('images/bg.jpg') no-repeat;
+            background-size: 100% 100%;
+        }
+
+        .play_wrap {
+            width: 800px;
+            height: 544px;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            margin-left: -400px;
+            margin-top: -272px;
+            /* background-color: #f9f9f9; */
+        }
+
+        .search_bar {
+            height: 60px;
+            background-color: #1eacda;
+            overflow: hidden;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 11;
+        }
+
+        .search_bar img {
+            margin-left: 23px;
+        }
+
+        .search_bar input {
+            margin-right: 23px;
+            width: 296px;
+            height: 34px;
+            border-radius: 17px;
+            border: 0px;
+            background: url('') 265px center no-repeat rgba(255, 255, 255, 0.45);
+            text-indent: 15px;
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 35px;
+            cursor: pointer;
+        }
+
+        .center_con {
+            height: 435px;
+            background-color: rgba(255, 255, 255, 0.5);
+            display: flex;
+        }
+
+        .song_wrapper {
+            width: 200px;
+            height: 435px;
+            box-sizing: border-box;
+            padding: 10px;
+            list-style: none;
+            background: url('images/line.png') right center no-repeat;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .song_list li {
+            font-size: 12px;
+            color: #333;
+            line-height: 36px;
+            width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .song_list .active {
+            color: #da651e;
+        }
+
+        .player_con {
+            width: 400px;
+            height: 435px;
+            position: relative;
+        }
+
+        .disc {
+            position: absolute;
+            left: 73px;
+            top: 60px;
+            z-index: 9;
+        }
+
+        .cover {
+            position: absolute;
+            left: 125px;
+            top: 112px;
+            width: 150px;
+            height: 150px;
+            border-radius: 75px;
+            z-index: 8;
+        }
+
+        .comment_list {
+            width: 200px;
+            height: 435px;
+            box-sizing: border-box;
+            padding: 10px;
+            list-style: none;
+            background: url('images/line.png') left center no-repeat;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .comment_list dl {
+            padding-left: 55px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .comment_list dt {
+            position: absolute;
+            left: 4px;
+            top: 0px;
+        }
+
+        .comment_list dt img {
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+        }
+
+        .comment_list dd {
+            font-size: 12px;
+        }
+
+        .comment_list .name {
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .comment_list .detail {
+            color: #666;
+            margin-top: 5px;
+            line-height: 18px;
+        }
+
+        .audio_con {
+            height: 50px;
+            background-color: #f1f3f4;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+
+        .myaudio {
+            width: 800px;
+            height: 40px;
+            margin-top: 5px;
+            outline: none;
+            background-color: #f1f3f4;
+        }
+
+        /* 旋转的动画 */
+        @keyframes Rotate {
+            from {
+                transform: rotateZ(0);
+            }
+
+            to {
+                transform: rotateZ(360deg);
+            }
+        }
+
+        /* 旋转的类名 */
+        .autoRotate {
+            animation-name: Rotate;
+            animation-iteration-count: infinite;
+            animation-play-state: paused;
+            animation-timing-function: linear;
+            animation-duration: 5s;
+        }
+
+        /* 是否正在播放 */
+        .playing {
+            animation-play-state: running;
+        }
+
+        .play_bar {
+            position: absolute;
+            left: 200px;
+            top: -10px;
+            z-index: 10;
+            transform: rotate(-25deg);
+            transform-origin: 12px 12px;
+            transition: 1s;
+        }
+
+        /* 播放杆 转回去 */
+        .play_bar.playing {
+            transform: rotate(0);
+        }
+
+        .list-enter-active,
+        .list-leave-active {
+            transition: all 1s;
+        }
+
+        .list-enter,
+        .list-leave-to {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap" id="app">
+        <div class="play_wrap" id="player">
+            <!-- 顶部歌曲搜索 -->
+            <div class="search_bar">
+                <img src="images/player_title.png" alt="" />
+                <!-- 搜索输入框 -->
+                <input type="text" placeholder="请输入你想听的歌曲" v-model="keyWord" @keyup.enter='searchMusic' />
+                <!-- 搜索按钮 -->
+                <img src="images/zoom.png" class="search-icon" alt="" @click='searchMusic' />
+            </div>
+            <!-- 中间部分，歌曲播放整个面板 -->
+            <div class="center_con">
+                <!-- 歌曲列表 -->
+                <div class="song_wrapper" ref="mysong">
+                    <transition-group class="song_list" name="list" tag="ul">
+                        <li v-for="(item, index) in musicList" :key="index" @dblclick="playMusic(item.id)">
+                            {{item.name}}-{{item.artists[0].name}}
+                        </li>
+                    </transition-group>
+                </div>
+                <!-- 歌曲播放 -->
+                <div class="player_con">
+                    <!-- 播放触杆 -->
+                    <img src="images/player_bar.png" class="play_bar "/ :class="{playing:playingTag}">
+                    <!-- 黑胶碟片 -->
+                    <img src="images/disc.png" class="disc autoRotate " :class="{playing:playingTag}" />
+                    <!-- 歌曲封面 -->
+                    <img :src="musicPic" class="cover autoRotate " :class="{playing:playingTag}" />
+                </div>
+                <!-- 歌曲评论 -->
+                <div class="comment_list" ref="myConment">
+                    <div>
+                        <dl v-for="(item, index) in commentList" :key='index'>
+                            <dt><img :src="item.user.avatarUrl" alt="" /></dt>
+                            <dd class="name">{{item.user.nickname}}</dd>
+                            <dd class="detail">{{item.content}}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <!-- 底部歌曲播放 -->
+            <div class="audio_con">
+                <audio controls="controls" autoplay="autoplay" loop="loop" class="myaudio" :src="musicSic"
+                    @play="toPlay" @pause="toPause"></audio>
+            </div>
+        </div>
+    </div>
+</body>
+
+<!-- 1. 导包 -->
+<script src="lib/vue.js"></script>
+<script src="lib/axios.js"></script>
+<script src='./lib/iscroll.js'></script>
+<!-- 2. 构建Vue实例 -->
+<script>
+    const vm = new Vue({
+        el: '#app',
+        data: {
+            // 顶部输入框输入查询的关键字
+            keyWord: '星月神话',
+            // 搜索到的歌曲列表
+            musicList: [],
+            // 保存当前播放歌曲的地址
+            musicSic: '',
+            // 保存当前播放歌曲的封面
+            musicPic: '',
+            // 当前音乐播放的状态
+            playingTag: false,
+            // 歌曲、评论平滑滚动
+            myscroll: null,
+            comScroll: null,
+            // 歌曲评论数据
+            commentList: []
+        },
+        mounted() {
+            //歌曲列表滚动
+            this.myScroll = new IScroll(this.$refs.mysong, {
+                mouseWheel: true,
+                //scrollbars: true
+            }),
+             // 评论列表滚动
+             this.comScroll = new IScroll(this.$refs.myConment, {
+                mouseWheel: true,
+                scrollbars: true
+            })
+
+        },
+        updated() {
+            this.myScroll.refresh();
+            this.comScroll.refresh();
+        },
+        methods: {
+
+            // 获取搜索歌曲
+            searchMusic() {
+                // 清空列表 --刷新歌曲列表-滚动
+                this.musicList = []
+                axios.get(`https://autumnfish.cn/search?keywords=${this.keyWord}`).then((data) => {
+                    // console.log(data.data.result.songs);
+                    this.musicList = data.data.result.songs
+                }).catch((err) => {
+
+                });
+            },
+            // 获取当前歌曲
+            playMusic(id) {
+                // 拿取歌曲的播放地址
+                axios.get(`https://autumnfish.cn/song/url?id=${id}`).then((data) => {
+                    // console.log(data.data.data[0].url)
+                    this.musicSic = data.data.data[0].url
+
+                }).catch((err) => {
+
+                });
+                // 拿取播放的封面地址
+                axios.get(`https://autumnfish.cn/song/detail?ids=${id}`).then((data) => {
+                    // console.log(data.data.songs[0].al.picUrl);
+                    this.musicPic = data.data.songs[0].al.picUrl
+
+                }).catch((err) => {
+
+                });
+                // 获取歌曲评论
+                axios.get(`https://autumnfish.cn/comment/hot?type=0&id=${id}`).then((data) => {
+
+                    // console.log(data.data.hotComments);
+                    this.commentList = data.data.hotComments
+
+                }).catch((err) => {
+
+                });
+            },
+            // 点击播放当前音乐（播放暂停按钮）
+            toPlay() {
+                this.playingTag = true;
+            },
+            // 点击暂停当前音乐（播放暂停按钮）
+            toPause() {
+                this.playingTag = false;
+            }
+        }
+    });
+</script>
+
+</html>
